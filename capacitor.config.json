@@ -1,0 +1,10 @@
+{
+  "appId": "fr.parlo.caa",
+  "appName": "Parlo",
+  "webDir": "www",
+  "android": {
+    "allowMixedContent": false,
+    "captureInput": false,
+    "webContentsDebuggingEnabled": true
+  }
+}

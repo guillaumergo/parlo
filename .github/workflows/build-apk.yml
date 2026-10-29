@@ -1,0 +1,82 @@
+name: Construire l'APK Android
+
+# Lancement manuel uniquement (onglet Actions → Run workflow)
+on:
+  workflow_dispatch:
+    inputs:
+      voices:
+        description: "Voix Piper à intégrer (séparées par des virgules)"
+        default: "fr_FR-siwis-medium"
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      VOICES: ${{ github.event.inputs.voices || 'fr_FR-siwis-medium' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Installer les dépendances
+        run: npm install --no-audit --no-fund
+
+      - name: Mettre en cache les voix et pictos
+        uses: actions/cache@v4
+        with:
+          path: |
+            www/voices/*.onnx
+            www/voices/*.onnx.json
+            www/voices/*.MODEL_CARD.txt
+            www/pictos
+          key: assets-${{ env.VOICES }}-${{ hashFiles('www/js/vocab.js') }}
+          restore-keys: assets-${{ env.VOICES }}-
+
+      - name: Télécharger voix, moteur ONNX et pictos ARASAAC
+        run: npm run assets
+
+      - name: Tester la voix embarquée (Chromium)
+        run: |
+          npx playwright install --with-deps chromium
+          npm run test:voice
+
+      - name: Exemple audio de la voix
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exemple-voix
+          path: test-output/
+          if-no-files-found: ignore
+
+      - name: Créer le projet Android
+        run: |
+          [ -d android ] || npx cap add android
+          npx cap sync android
+
+      - name: Signature stable (permet les mises à jour sans perdre les données)
+        run: |
+          mkdir -p ~/.android
+          cp android-signing/debug.keystore ~/.android/debug.keystore
+
+      - name: Compiler l'APK
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon
+          cp app/build/outputs/apk/debug/app-debug.apk ../Parlo.apk
+
+      - name: Publier l'APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: Parlo-apk
+          path: Parlo.apk

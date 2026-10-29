@@ -1,0 +1,72 @@
+name: Publier la version web
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      voices:
+        description: "Voix Piper à intégrer (séparées par des virgules)"
+        default: "fr_FR-siwis-medium"
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  web:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    env:
+      VOICES: ${{ github.event.inputs.voices || 'fr_FR-siwis-medium' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Installer les dépendances
+        run: npm install --no-audit --no-fund
+
+      - name: Mettre en cache les voix et pictos
+        uses: actions/cache@v4
+        with:
+          path: |
+            www/voices/*.onnx
+            www/voices/*.onnx.json
+            www/voices/*.MODEL_CARD.txt
+            www/pictos
+          key: assets-${{ env.VOICES }}-${{ hashFiles('www/js/vocab.js') }}
+          restore-keys: assets-${{ env.VOICES }}-
+
+      - name: Télécharger voix, moteur ONNX et pictos ARASAAC
+        run: npm run assets
+
+      - name: Tester la voix embarquée (Chromium)
+        run: |
+          npx playwright install --with-deps chromium
+          npm run test:voice
+
+      - name: Préparer le mode hors ligne
+        run: npm run build:web
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: www
+
+      - id: deploy
+        uses: actions/deploy-pages@v4
+
+      - name: Adresse de l'appli
+        run: echo "### 👉 Parlo est en ligne : ${{ steps.deploy.outputs.page_url }}" >> "$GITHUB_STEP_SUMMARY"

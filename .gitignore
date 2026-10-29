@@ -1,0 +1,11 @@
+node_modules/
+android/
+test-output/
+Parlo.apk
+www/vendor/ort/
+www/voices/*.onnx
+www/voices/*.onnx.json
+www/voices/*.MODEL_CARD.txt
+www/voices/index.json
+www/pictos/
+www/precache.json

@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#1D2A35">
+  <title>Parlo</title>
+  <link rel="stylesheet" href="css/app.css">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="icon" type="image/png" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <meta name="mobile-web-app-capable" content="yes">
+</head>
+<body>
+  <div id="app">
+    <!-- Barre de message -->
+    <header id="topbar">
+      <button class="tb" id="btnHome" aria-label="Accueil"><span class="ico">🏠</span><span class="tbl">Accueil</span></button>
+      <button class="tb" id="btnBack" aria-label="Retour"><span class="ico">◀</span><span class="tbl">Retour</span></button>
+      <div id="message" role="button" aria-label="Lire le message" tabindex="0">
+        <div id="messageTokens"></div>
+        <div id="messageHint">Touchez des cases pour composer une phrase</div>
+      </div>
+      <button class="tb" id="btnBackspace" aria-label="Effacer le dernier mot"><span class="ico">⌫</span><span class="tbl">Effacer</span></button>
+      <button class="tb" id="btnClear" aria-label="Tout effacer"><span class="ico">🗑️</span><span class="tbl">Tout</span></button>
+      <button class="tb speak" id="btnSpeak" aria-label="Lire le message"><span class="ico">🔊</span><span class="tbl">Parler</span></button>
+      <button class="tb gear" id="btnMenu" aria-label="Menu (appui long)"><span class="ico">⚙️</span><span class="hold-ring"></span></button>
+    </header>
+
+    <!-- Bandeau du mode édition -->
+    <div id="editbar" hidden>
+      <span class="eb-title">✏️ Édition</span>
+      <select id="ebPage" aria-label="Page"></select>
+      <button id="ebPageProps">Propriétés de la page</button>
+      <button id="ebNewPage">+ Nouvelle page</button>
+      <button id="ebMove" class="toggle">⇄ Déplacer</button>
+      <span class="eb-hint" id="ebHint">Touchez une case pour la modifier</span>
+      <button id="ebDone" class="primary">Terminer</button>
+    </div>
+
+    <div id="pageTitle"></div>
+    <main id="grid" aria-live="polite"></main>
+    <div id="toast" role="status"></div>
+  </div>
+
+  <!-- Menu principal -->
+  <dialog id="dlgMenu" class="sheet">
+    <h2>Menu</h2>
+    <p class="backup-hint" id="menuBackupHint" hidden></p>
+    <div class="menu-list">
+      <button data-act="edit">✏️ Modifier les grilles</button>
+      <button data-act="settings">⚙️ Réglages</button>
+      <button data-act="pages">🗂️ Gérer les pages</button>
+      <button data-act="data">💾 Sauvegarde / restauration</button>
+      <button data-act="about">ℹ️ À propos et licences</button>
+    </div>
+    <div class="dlg-actions"><button data-close>Fermer</button></div>
+  </dialog>
+
+  <!-- Code de déverrouillage -->
+  <dialog id="dlgPin" class="small">
+    <h2>Code adulte</h2>
+    <input id="pinInput" type="password" inputmode="numeric" autocomplete="off" maxlength="8">
+    <p class="err" id="pinErr"></p>
+    <div class="dlg-actions"><button data-close>Annuler</button><button id="pinOk" class="primary">Valider</button></div>
+  </dialog>
+
+  <!-- Éditeur de case -->
+  <dialog id="dlgCell" class="wide">
+    <h2>Modifier la case</h2>
+    <div class="cell-editor">
+      <div class="ce-preview">
+        <div id="cePreview" class="cell"></div>
+        <div class="ce-img-actions">
+          <button id="ceArasaac">🔎 Pictos ARASAAC</button>
+          <button id="cePhoto">📷 Photo / image</button>
+          <button id="ceEmoji">😀 Emoji</button>
+          <button id="ceNoImg">✖ Sans image</button>
+          <input id="ceFile" type="file" accept="image/*" hidden>
+        </div>
+      </div>
+      <div class="ce-form">
+        <label>Libellé affiché<input id="ceLabel" type="text"></label>
+        <label>Texte prononcé <small>(vide = libellé)</small>
+          <div class="row"><input id="ceSpeak" type="text"><button id="ceTest" title="Écouter">🔊</button></div>
+        </label>
+        <label>Type de case
+          <select id="ceType">
+            <option value="word">Mot / phrase</option>
+            <option value="folder">Dossier → ouvre une page</option>
+            <option value="letter">Lettre (clavier)</option>
+            <option value="command">Commande</option>
+          </select>
+        </label>
+        <label id="ceLinkRow">Page à ouvrir
+          <select id="ceLink"></select>
+        </label>
+        <label id="ceCmdRow">Commande
+          <select id="ceCmd">
+            <option value="speak">Lire le message</option>
+            <option value="clear">Effacer tout le message</option>
+            <option value="backspace">Effacer le dernier mot</option>
+            <option value="backspaceLetter">Effacer la dernière lettre</option>
+            <option value="space">Espace</option>
+            <option value="speakLastWord">Dire le dernier mot</option>
+            <option value="home">Aller à l'accueil</option>
+            <option value="back">Page précédente</option>
+            <option value="stop">Arrêter la voix</option>
+          </select>
+        </label>
+        <label id="ceLetterRow">Caractère à écrire<input id="ceLetter" type="text" maxlength="3"></label>
+        <label class="check" id="ceAddRow"><input id="ceAdd" type="checkbox"> Ajouter au message</label>
+        <label id="ceGramRow">Rôle dans la phrase
+          <select id="ceGram">
+            <option value="">Automatique (selon la couleur / la catégorie)</option>
+            <option value="verb">Verbe à l'infinitif (sera conjugué)</option>
+            <option value="subj-m">Personne masculine (sujet : il)</option>
+            <option value="subj-f">Personne féminine (sujet : elle)</option>
+            <option value="fixed">Mot fixe (ne jamais modifier)</option>
+          </select>
+        </label>
+        <div class="field">Couleur
+          <div id="ceColors" class="swatches"></div>
+        </div>
+        <label class="check"><input id="ceHidden" type="checkbox"> Masquer cette case (garde sa place)</label>
+      </div>
+    </div>
+    <div class="dlg-actions">
+      <button id="ceDelete" class="danger">Vider la case</button>
+      <span class="spacer"></span>
+      <button data-close>Annuler</button>
+      <button id="ceSave" class="primary">Enregistrer</button>
+    </div>
+  </dialog>
+
+  <!-- Recherche ARASAAC -->
+  <dialog id="dlgArasaac" class="wide">
+    <h2>Pictogrammes ARASAAC</h2>
+    <div class="row"><input id="arQuery" type="search" placeholder="Ex. : manger, chat, piscine…"><button id="arGo" class="primary">Chercher</button></div>
+    <p class="hint">La recherche nécessite internet. Le picto choisi est ensuite enregistré sur la tablette et fonctionne hors ligne.</p>
+    <div id="arResults" class="picto-results"></div>
+    <div class="dlg-actions"><button data-close>Fermer</button></div>
+  </dialog>
+
+  <!-- Emoji -->
+  <dialog id="dlgEmoji" class="small">
+    <h2>Emoji</h2>
+    <input id="emojiInput" type="text" placeholder="Collez ou tapez un emoji">
+    <div id="emojiQuick" class="emoji-quick"></div>
+    <div class="dlg-actions"><button data-close>Annuler</button><button id="emojiOk" class="primary">OK</button></div>
+  </dialog>
+
+  <!-- Propriétés de page -->
+  <dialog id="dlgPage" class="small">
+    <h2 id="pgTitle">Page</h2>
+    <label>Nom<input id="pgName" type="text"></label>
+    <div class="row2">
+      <label>Lignes<input id="pgRows" type="number" min="1" max="12"></label>
+      <label>Colonnes<input id="pgCols" type="number" min="1" max="16"></label>
+    </div>
+    <p class="hint" id="pgWarn"></p>
+    <div class="dlg-actions">
+      <button id="pgDelete" class="danger">Supprimer</button>
+      <span class="spacer"></span>
+      <button data-close>Annuler</button>
+      <button id="pgSave" class="primary">Enregistrer</button>
+    </div>
+  </dialog>
+
+  <!-- Gestion des pages -->
+  <dialog id="dlgPages">
+    <h2>Pages</h2>
+    <p class="hint">La page marquée 🏠 est l'accueil.</p>
+    <ul id="pagesList" class="pages-list"></ul>
+    <div class="dlg-actions"><button id="pagesNew">+ Nouvelle page</button><span class="spacer"></span><button data-close>Fermer</button></div>
+  </dialog>
+
+  <!-- Réglages -->
+  <dialog id="dlgSettings" class="wide">
+    <h2>Réglages</h2>
+    <div class="tabs" id="setTabs">
+      <button data-tab="voice" class="on">Voix</button>
+      <button data-tab="access">Accès tactile</button>
+      <button data-tab="display">Affichage</button>
+      <button data-tab="message">Message</button>
+      <button data-tab="security">Sécurité</button>
+    </div>
+
+    <section data-panel="voice">
+      <div class="field">Moteur de voix
+        <div class="seg" id="setEngine">
+          <button data-v="piper">Voix embarquée (Piper)</button>
+          <button data-v="system">Voix du système Android</button>
+        </div>
+      </div>
+      <label id="setPiperRow">Voix embarquée<select id="setPiperVoice"></select></label>
+      <label id="setSystemRow">Voix système<select id="setSystemVoice"></select></label>
+      <p class="hint" id="setVoiceHint"></p>
+      <label>Vitesse <output id="outRate"></output><input id="setRate" type="range" min="0.5" max="1.6" step="0.05"></label>
+      <label id="setPitchRow">Hauteur (voix système) <output id="outPitch"></output><input id="setPitch" type="range" min="0.5" max="2" step="0.05"></label>
+      <label>Volume <output id="outVolume"></output><input id="setVolume" type="range" min="0.1" max="1" step="0.05"></label>
+      <div class="row">
+        <input id="setTestText" type="text" value="Bonjour, je m'appelle Parlo. Je veux jouer avec toi !">
+        <button id="setTest" class="primary">🔊 Tester</button>
+      </div>
+      <div class="row">
+        <button id="setPrefetchAll">⚡ Préparer toutes les cases (voix embarquée)</button>
+        <button id="setInstallVoices">⬇️ Installer des voix Android hors ligne</button>
+      </div>
+    </section>
+
+    <section data-panel="access" hidden>
+      <div class="field">Activation d'une case
+        <div class="seg" id="setActivation">
+          <button data-v="release">Au relâchement</button>
+          <button data-v="press">Au toucher</button>
+          <button data-v="hold">Appui maintenu</button>
+        </div>
+      </div>
+      <p class="hint">« Au relâchement » permet de glisser le doigt pour changer d'avis. « Appui maintenu » évite les appuis involontaires (tremblements, mouvements anormaux).</p>
+      <label id="setHoldRow">Durée d'appui maintenu <output id="outHold"></output><input id="setHold" type="range" min="150" max="3000" step="50"></label>
+      <label>Anti-rebond (délai minimum entre deux activations) <output id="outDebounce"></output><input id="setDebounce" type="range" min="0" max="3000" step="50"></label>
+      <label class="check"><input id="setIgnoreMulti" type="checkbox"> Ignorer les appuis à plusieurs doigts / paume</label>
+      <label class="check"><input id="setSpeakOnSelect" type="checkbox"> Prononcer chaque case touchée</label>
+      <label class="check"><input id="setAutoHome" type="checkbox"> Revenir à l'accueil après un mot choisi dans un dossier</label>
+    </section>
+
+    <section data-panel="display" hidden>
+      <label>Taille du texte <output id="outFont"></output><input id="setFont" type="range" min="0.6" max="1.8" step="0.05"></label>
+      <label>Espacement entre les cases <output id="outGap"></output><input id="setGap" type="range" min="0" max="24" step="1"></label>
+      <div class="field">Position du libellé
+        <div class="seg" id="setLabelPos">
+          <button data-v="top">En haut</button>
+          <button data-v="bottom">En bas</button>
+          <button data-v="none">Masqué</button>
+        </div>
+      </div>
+      <div class="field">Contour noir autour des images
+        <div class="seg" id="setOutline">
+          <button data-v="none">Aucun</button>
+          <button data-v="thin">Fin</button>
+          <button data-v="medium">Moyen</button>
+          <button data-v="thick">Épais</button>
+        </div>
+      </div>
+      <p class="hint">Fait mieux ressortir les pictos, emojis et photos sur le fond coloré des cases.</p>
+      <label class="check"><input id="setShowEmpty" type="checkbox"> Afficher les cases vides</label>
+      <label class="check"><input id="setMsgPictos" type="checkbox"> Pictos dans la barre de message</label>
+      <label class="check"><input id="setPageTitle" type="checkbox"> Afficher le nom de la page</label>
+    </section>
+
+    <section data-panel="message" hidden>
+      <label class="check"><input id="setConjugate" type="checkbox"> Conjuguer les verbes selon le sujet (je + vouloir → je veux) et le temps (hier / maintenant / demain)</label>
+      <p class="hint">Sans sujet, le mot reste tel quel. « pas » place automatiquement « ne… pas » autour du verbe.</p>
+      <div class="field">L'enfant est (accord au passé : « je suis allé / allée »)
+        <div class="seg" id="setGender">
+          <button data-v="m">un garçon</button>
+          <button data-v="f">une fille</button>
+        </div>
+      </div>
+      <label class="check"><input id="setGrammar" type="checkbox"> Élisions automatiques (je + ai → j'ai, ne + aime → n'aime)</label>
+      <label class="check"><input id="setClearAfter" type="checkbox"> Effacer le message après l'avoir lu</label>
+      <label class="check"><input id="setSpeakOnTapMsg" type="checkbox"> Toucher la barre de message la lit</label>
+    </section>
+
+    <section data-panel="security" hidden>
+      <div class="field">Accès au menu (pour éviter les modifications involontaires)
+        <div class="seg" id="setLock">
+          <button data-v="hold">Appui long 2 s sur ⚙️</button>
+          <button data-v="pin">Code</button>
+          <button data-v="none">Libre</button>
+        </div>
+      </div>
+      <label id="setPinRow">Code (chiffres)<input id="setPin" type="text" inputmode="numeric" maxlength="8"></label>
+    </section>
+
+    <div class="dlg-actions"><button data-close class="primary">Fermer</button></div>
+  </dialog>
+
+  <!-- Données -->
+  <dialog id="dlgData" class="small">
+    <h2>Sauvegarde</h2>
+    <p class="hint">La sauvegarde contient toutes les pages, images et réglages. Gardez-en une copie avant de prêter ou réinitialiser la tablette.</p>
+    <div class="menu-list">
+      <button id="dataExport">📤 Exporter une sauvegarde</button>
+      <button id="dataImport">📥 Restaurer une sauvegarde</button>
+      <button id="dataPictos">🖼️ Télécharger les pictos ARASAAC du vocabulaire de base</button>
+      <button id="dataResetVocab" class="danger">↺ Réinitialiser le vocabulaire de base</button>
+      <input id="dataFile" type="file" accept="application/json,.json" hidden>
+    </div>
+    <p class="hint" id="dataStatus"></p>
+    <div class="dlg-actions"><button data-close>Fermer</button></div>
+  </dialog>
+
+  <!-- À propos -->
+  <dialog id="dlgAbout">
+    <h2>Parlo</h2>
+    <p>Outil de communication alternative et augmentée (CAA), utilisable sans connexion internet.</p>
+    <h3>Pictogrammes</h3>
+    <p>Les pictogrammes ARASAAC sont la propriété du Gouvernement d'Aragon. Ils ont été créés par Sergio Palao pour ARASAAC (arasaac.org), qui les diffuse sous licence Creative Commons BY-NC-SA. Usage non commercial uniquement.</p>
+    <h3>Voix embarquée</h3>
+    <p>Synthèse vocale Piper (licence MIT), phonétiseur espeak-ng (GPL-3.0) et ONNX Runtime (licence MIT). Le modèle de voix français est distribué avec sa propre fiche de licence, incluse dans l'application (dossier voices).</p>
+    <p id="aboutVoices" class="hint"></p>
+    <h3>Version web</h3>
+    <p class="hint" id="aboutOffline">Fonctionnement hors ligne : —</p>
+    <div class="row"><button id="aboutUpdate">🔄 Rechercher une mise à jour</button></div>
+    <div class="dlg-actions"><button data-close class="primary">Fermer</button></div>
+  </dialog>
+
+  <script src="js/db.js"></script>
+  <script src="js/vocab.js"></script>
+  <script src="js/tts.js"></script>
+  <script src="js/grammar.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/editor.js"></script>
+</body>
+</html>
