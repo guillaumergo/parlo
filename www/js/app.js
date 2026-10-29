@@ -134,7 +134,8 @@
       }
       frag.appendChild(el);
     }
-    grid.replaceChildren(frag);
+    grid.innerHTML = '';
+    grid.appendChild(frag); // (replaceChildren n'existe pas sur les navigateurs anciens)
 
     const title = $('#pageTitle');
     title.textContent = b.name;
@@ -568,6 +569,8 @@
       ? 'Voix embarquées : ' + v.map((x) => x.name + (x.license ? ' (' + x.license + ')' : '')).join(', ')
       : 'Aucune voix embarquée dans cette version.';
     $('#aboutOffline').textContent = offlineStatusText();
+    $('#aboutDiag').textContent = 'Navigateur : ' + (root.parloBrowser ? root.parloBrowser() : navigator.userAgent) +
+      (App.lastVoiceError ? ' — Dernière erreur de voix : ' + App.lastVoiceError : '');
     $('#aboutUpdate').hidden = !swReg;
     $('#dlgAbout').showModal();
   }
@@ -707,7 +710,10 @@
     const saved = await DB.get('kv', 'settings');
     App.settings = { ...DEFAULTS, ...(saved || {}) };
     App.homeId = (await DB.get('kv', 'home')) || 'accueil';
-    const ttsReady = TTS.init(App.settings, (msg, type) => App.toast(msg, type, type === 'error' ? 5000 : 2500));
+    const ttsReady = TTS.init(App.settings, (msg, type) => {
+      if (type === 'error') App.lastVoiceError = msg;
+      App.toast(msg, type, type === 'error' ? 6000 : 2500);
+    });
 
     try {
       const res = await fetch('pictos/index.json', { cache: 'no-store' });

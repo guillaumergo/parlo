@@ -73,7 +73,7 @@ async function synth(job) {
   const feeds = {
     input: new ort.Tensor('int64', BigInt64Array.from(ids, (x) => BigInt(x)), [1, ids.length]),
     input_lengths: new ort.Tensor('int64', BigInt64Array.from([BigInt(ids.length)]), [1]),
-    scales: new ort.Tensor('float32', Float32Array.from([inf.noise_scale ?? 0.667, lengthScale, inf.noise_w ?? 0.8]), [3]),
+    scales: new ort.Tensor('float32', Float32Array.from([(inf.noise_scale != null ? inf.noise_scale : 0.667), lengthScale, (inf.noise_w != null ? inf.noise_w : 0.8)]), [3]),
   };
   if (session.inputNames.includes('sid')) {
     feeds.sid = new ort.Tensor('int64', BigInt64Array.from([BigInt(job.speaker || 0)]), [1]);

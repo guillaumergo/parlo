@@ -128,6 +128,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .cell .lbl {
   order: 0; flex: 0 0 auto; max-width: 100%;
   font-weight: 700; color: var(--ink); text-align: center; line-height: 1.18; padding-top: .06em;
+  font-size: calc(2.1vmin * var(--font-scale));
   font-size: calc(min(17cqh, 15cqw) * var(--font-scale));
   overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
   word-break: break-word; hyphens: auto;
@@ -135,7 +136,8 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .cell .sym { order: 1; flex: 1 1 0; min-height: 0; width: 100%; object-fit: contain; pointer-events: none; }
 .cell .sym.emoji {
   display: flex; align-items: center; justify-content: center;
-  font-size: min(48cqh, 52cqw); line-height: 1;
+  font-size: 6vmin; line-height: 1;
+  font-size: min(48cqh, 52cqw);
 }
 body[data-labelpos="bottom"] .cell .lbl { order: 2; }
 body[data-labelpos="none"] .cell .lbl { display: none; }
@@ -155,7 +157,7 @@ body:not([data-outline="none"]) .cell .sym { padding: var(--ol); }
 .cell:not(:has(.sym)) .lbl { font-size: calc(min(24cqh, 17cqw) * var(--font-scale)); -webkit-line-clamp: 4; }
 
 /* Lettres du clavier : très lisibles */
-.cell.t-letter .lbl { font-size: calc(min(55cqh, 55cqw) * var(--font-scale)); }
+.cell.t-letter .lbl { font-size: calc(6vmin * var(--font-scale)); font-size: calc(min(55cqh, 55cqw) * var(--font-scale)); }
 
 /* Dossiers : onglet comme un classeur */
 .cell.t-folder { border-radius: 4px var(--radius) var(--radius) var(--radius); border-width: 3px; }

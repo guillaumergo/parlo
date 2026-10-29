@@ -325,9 +325,10 @@
       .replace(/ de le (?=[^aeiouyhàâäéèêëîïôöûüœ])/gi, ' du ')
       .replace(/ de les /gi, ' des ')
       .replace(/ si il(s?) /gi, " s'il$1 ");
-    const re = new RegExp('(?<=\\s)(' + ELIDE.join('|') + ') (?=(\\S+))', 'gi');
-    t = t.replace(re, (m, w, next) => (VOWEL.test(next) && !H_ASPIRE.test(next) ? w.slice(0, -1) + "'" : m));
-    return t.trim();
+    // (sans « lookbehind », non reconnu par les navigateurs anciens)
+    const re = new RegExp('(\\s)(' + ELIDE.join('|') + ')(?= (\\S+))', 'gi');
+    t = t.replace(re, (m, sp, w, next) => (VOWEL.test(next) && !H_ASPIRE.test(next) ? sp + w.slice(0, -1) + "'\u0001" : m));
+    return t.replace(/'\u0001 /g, "'").trim();
   }
 
   const api = { compose, conjugate, parseVerb, paradigm, elide, TENSE_MARKERS };

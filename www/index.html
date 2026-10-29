@@ -303,10 +303,42 @@
     <p id="aboutVoices" class="hint"></p>
     <h3>Version web</h3>
     <p class="hint" id="aboutOffline">Fonctionnement hors ligne : —</p>
+    <p class="hint" id="aboutDiag"></p>
     <div class="row"><button id="aboutUpdate">🔄 Rechercher une mise à jour</button></div>
     <div class="dlg-actions"><button data-close class="primary">Fermer</button></div>
   </dialog>
 
+  <!-- Diagnostic (écrit en JavaScript ancien pour fonctionner partout) -->
+  <script>
+    (function () {
+      var errors = [];
+      window.addEventListener('error', function (e) { errors.push((e.message || 'erreur') + (e.filename ? ' (' + e.filename.split('/').pop() + ':' + e.lineno + ')' : '')); });
+      window.addEventListener('unhandledrejection', function (e) { errors.push(String(e.reason && e.reason.message || e.reason)); });
+      window.parloErrors = errors;
+      function browser() {
+        var ua = navigator.userAgent, m;
+        if ((m = /SamsungBrowser\/([\d.]+)/.exec(ua))) return 'Samsung Internet ' + m[1];
+        if ((m = /; wv\)/.test(ua) && /Chrome\/([\d.]+)/.exec(ua))) return 'navigateur intégré (WebView ' + m[1] + ')';
+        if ((m = /Chrome\/([\d.]+)/.exec(ua))) return 'Chrome ' + m[1];
+        if ((m = /Version\/([\d.]+).*Safari/.exec(ua))) return 'Safari ' + m[1];
+        return ua;
+      }
+      window.parloBrowser = browser;
+      setTimeout(function () {
+        if (document.querySelector('#grid .cell')) return;
+        var d = document.createElement('div');
+        d.style.cssText = 'position:fixed;inset:0;top:0;left:0;right:0;bottom:0;z-index:99;background:#fff;color:#17212B;padding:24px;font:16px/1.5 sans-serif;overflow:auto';
+        d.innerHTML = '<h2 style="margin:0 0 12px">Parlo n\'a pas pu démarrer sur ce navigateur</h2>' +
+          '<p><b>Navigateur :</b> ' + browser() + '</p>' +
+          '<p>Que faire :</p><ol>' +
+          '<li>Si le lien a été ouvert depuis une autre application (Gmail, Messenger, SMS…), touchez <b>⋮</b> puis <b>Ouvrir dans Chrome</b>.</li>' +
+          '<li>Mettez <b>Chrome</b> et <b>Android System WebView</b> à jour dans le Play Store.</li>' +
+          '<li>Rouvrez l\'adresse dans Chrome.</li></ol>' +
+          '<p style="color:#4A5866;font-size:13px">Détail technique (à transmettre) : ' + (errors.join(' | ') || 'aucune erreur signalée, démarrage trop lent') + '<br>' + navigator.userAgent + '</p>';
+        document.body.appendChild(d);
+      }, 8000);
+    })();
+  </script>
   <script src="js/db.js"></script>
   <script src="js/vocab.js"></script>
   <script src="js/tts.js"></script>
