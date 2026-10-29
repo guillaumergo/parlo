@@ -111,11 +111,15 @@ async function fetchPictos() {
   console.log(`✔ Pictos ARASAAC : ${Object.keys(index).length} au total (${ok} nouveaux, ${ko} introuvables)`);
 }
 
-try {
-  await copyOrt();
-  await fetchVoices();
-  await fetchPictos();
-} catch (e) {
-  console.error('✖', e.message);
-  process.exit(1);
+const CI = !!process.env.GITHUB_ACTIONS;
+const note = (level, msg) => CI && console.log(`::${level}::${String(msg).replace(/\n/g, ' ')}`);
+for (const [name, step] of [['Moteur ONNX', copyOrt], ['Voix', fetchVoices], ['Pictos', fetchPictos]]) {
+  try {
+    await step();
+    note('notice', `${name} : OK`);
+  } catch (e) {
+    console.error('✖', name, ':', e.stack || e.message);
+    note('error', `${name} : ${e.message} ${e.cause ? '(' + (e.cause.code || e.cause.message) + ')' : ''}`);
+    process.exit(1);
+  }
 }
