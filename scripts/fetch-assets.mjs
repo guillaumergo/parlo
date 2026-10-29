@@ -38,7 +38,7 @@ async function download(url, dest) {
 
 /* 1. ONNX Runtime Web */
 async function copyOrt() {
-  const dist = path.join(path.dirname(require.resolve('onnxruntime-web/package.json')), 'dist');
+  const dist = path.join(ROOT, 'node_modules', 'onnxruntime-web', 'dist');
   const out = path.join(WWW, 'vendor', 'ort');
   await fs.mkdir(out, { recursive: true });
   const files = (await fs.readdir(dist)).filter((f) =>
