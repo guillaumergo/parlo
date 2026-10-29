@@ -85,6 +85,26 @@
   }
 
   let piperBroken = false;
+
+  /** Message compréhensible pour une erreur de la voix embarquée. */
+  function explain(e) {
+    const m = String((e && e.message) || e || '');
+    if (/magic word|fetch|network|NetworkError|Hors ligne|503|Load failed/i.test(m) || !navigator.onLine) {
+      return "Voix embarquée pas encore enregistrée sur cet appareil : laissez Parlo ouvert quelques minutes avec internet";
+    }
+    if (/memory|allocation|RangeError/i.test(m)) {
+      return 'Voix embarquée trop lourde pour la mémoire de cet appareil (' + m.slice(0, 80) + ')';
+    }
+    return 'Voix embarquée indisponible (' + m.slice(0, 160) + ')';
+  }
+
+  // Quand la connexion revient, on redonne sa chance à la voix embarquée
+  root.addEventListener('online', () => {
+    if (!piperBroken && worker) return;
+    piperBroken = false;
+    if (worker) { worker.terminate(); worker = null; }
+    if (settings && settings.engine === 'piper') TTS.warmUp();
+  });
   function currentPiperVoice() {
     if (piperBroken || !piperVoices || !piperVoices.length) return null;
     return piperVoices.find((v) => v.id === settings.piperVoice) || piperVoices[0];
@@ -158,7 +178,7 @@
     try {
       audio = await getPiperAudio(text, 'high');
     } catch (e) {
-      onStatus('Voix embarquée indisponible (' + e.message + ') — voix système utilisée.', 'error');
+      onStatus(explain(e) + ' — voix système utilisée.', 'error');
       return speakSystem(text);
     }
     if (token !== speakToken) return; // une autre parole a été demandée entre-temps
@@ -223,7 +243,7 @@
         await post({ type: 'load', voice });
         onStatus('Voix embarquée prête', 'ok');
       } catch (e) {
-        onStatus('Voix embarquée indisponible : ' + e.message, 'error');
+        onStatus(explain(e), 'error');
       }
     },
 

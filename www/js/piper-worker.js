@@ -25,6 +25,8 @@ function getPhonemizer() {
       },
       printErr: () => {},
     });
+    // En cas d'échec (fichier pas encore téléchargé…), on réessaiera la prochaine fois
+    phonemizerPromise.catch(() => { phonemizerPromise = null; });
   }
   return phonemizerPromise;
 }

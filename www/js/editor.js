@@ -191,6 +191,7 @@
     if (!f) return;
     try {
       draft._pendingImage = await resizeImage(f, 480);
+      draft._pendingKind = 'photo';
       syncCellForm();
     } catch (err) { App.toast("Impossible de lire l'image", 'error'); }
   });
@@ -216,9 +217,11 @@
       await DB.put('images', id, draft._pendingImage);
       App.images.set(id, draft._pendingImage);
       draft.image = 'img:' + id;
+      draft.imageKind = draft._pendingKind || 'photo';
       draft.picto = null;
     }
     delete draft._pendingImage;
+    delete draft._pendingKind;
     if (!draft.label && !draft.image && !draft.emoji && !draft.picto) {
       App.toast('Ajoutez au moins un libellé ou une image', 'warn');
       return;
@@ -302,6 +305,7 @@
     b.classList.add('loading');
     try {
       draft._pendingImage = await urlToDataUrl(ARASAAC_IMG(b.dataset.id));
+      draft._pendingKind = 'arasaac';
       syncCellForm();
       $('#dlgArasaac').close();
     } catch (err) {

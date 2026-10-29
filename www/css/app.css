@@ -154,6 +154,8 @@ body:not([data-outline="none"]) .tok .emoji {
     drop-shadow(0 var(--ol) 0 var(--ol-c)) drop-shadow(0 calc(-1 * var(--ol)) 0 var(--ol-c));
 }
 body:not([data-outline="none"]) .cell .sym { padding: var(--ol); }
+body[data-outline-pictos="0"] .cell .sym.picto,
+body[data-outline-pictos="0"] .tok img.picto { filter: none; padding: 0; }
 .cell:not(:has(.sym)) .lbl { font-size: calc(min(24cqh, 17cqw) * var(--font-scale)); -webkit-line-clamp: 4; }
 
 /* Lettres du clavier : très lisibles */

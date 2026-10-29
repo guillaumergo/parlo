@@ -101,7 +101,7 @@ self.addEventListener('fetch', (event) => {
       }
       return res;
     } catch (e) {
-      return new Response('Hors ligne', { status: 503, statusText: 'Hors ligne' });
+      return Response.error(); // vraie erreur réseau (jamais un faux contenu)
     }
   })());
 });

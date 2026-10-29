@@ -12,7 +12,7 @@
     engine: 'piper', piperVoice: null, systemVoice: null, rate: 1, pitch: 1, volume: 1,
     activation: 'release', holdTime: 600, debounce: 250, ignoreMulti: true,
     speakOnSelect: true, autoHome: false,
-    fontScale: 1, gap: 6, labelPos: 'top', outline: 'medium', showEmpty: false, msgPictos: true, pageTitle: false,
+    fontScale: 1, gap: 6, labelPos: 'top', outline: 'medium', outlinePictos: false, showEmpty: false, msgPictos: true, pageTitle: false,
     grammar: true, conjugate: true, childGender: 'm', clearAfter: false, tapMsgToSpeak: true,
     lock: 'hold', pin: '1234',
   };
@@ -77,8 +77,9 @@
   function cellInner(cell) {
     const src = App.imageSrc(cell);
     const label = cell.label || '';
+    const isPicto = !!(src && ((cell.picto && !cell.image) || cell.imageKind === 'arasaac'));
     const img = src
-      ? `<img class="sym" src="${src}" alt="" draggable="false">`
+      ? `<img class="sym${isPicto ? ' picto' : ''}" src="${src}" alt="" draggable="false">`
       : (cell.emoji ? `<span class="sym emoji">${cell.emoji}</span>` : '');
     return `<span class="lbl">${escapeHtml(label)}</span>${img}`;
   }
@@ -114,6 +115,7 @@
     root2.setProperty('--gap', s.gap + 'px');
     document.body.dataset.labelpos = s.labelPos;
     document.body.dataset.outline = s.outline || 'none';
+    document.body.dataset.outlinePictos = s.outlinePictos ? '1' : '0';
     document.body.classList.toggle('show-empty', !!s.showEmpty);
     document.body.classList.toggle('editing', App.editMode);
     grid.style.gridTemplateColumns = `repeat(${b.cols}, minmax(0, 1fr))`;
@@ -177,7 +179,7 @@
     const { display } = App.composeMessage();
     box.innerHTML = App.message.map((t, i) => {
       const pic = showPictos && t.kind !== 'typing'
-        ? (t.src ? `<img src="${t.src}" alt="">` : (t.emoji ? `<span class="emoji">${t.emoji}</span>` : ''))
+        ? (t.src ? `<img${t.picto ? ' class="picto"' : ''} src="${t.src}" alt="">` : (t.emoji ? `<span class="emoji">${t.emoji}</span>` : ''))
         : '';
       const shown = display[i] || t.text;
       const changed = t.kind !== 'typing' && shown !== t.text;
@@ -192,6 +194,7 @@
     App.finishTyping();
     App.message.push({
       kind: 'word', text: App.speakText(cell), src: App.imageSrc(cell), emoji: cell.emoji,
+      picto: !!((cell.picto && !cell.image) || cell.imageKind === 'arasaac'),
       cat: cell.cat || null, gram: cell.gram || '',
     });
     renderMessage();
@@ -544,6 +547,7 @@
     bindRange('#setGap', 'gap', (v) => v + ' px', App.render);
     bindSeg('#setLabelPos', 'labelPos', App.render);
     bindSeg('#setOutline', 'outline', App.render);
+    bindCheck('#setOutlinePictos', 'outlinePictos', () => { App.render(); renderMessage(); });
     bindCheck('#setShowEmpty', 'showEmpty', App.render);
     bindCheck('#setMsgPictos', 'msgPictos', renderMessage);
     bindCheck('#setPageTitle', 'pageTitle', App.render);
