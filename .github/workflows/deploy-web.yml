@@ -69,4 +69,5 @@ jobs:
         uses: actions/deploy-pages@v4
 
       - name: Adresse de l'appli
-        run: echo "### 👉 Parlo est en ligne : ${{ steps.deploy.outputs.page_url }}" >> "$GITHUB_STEP_SUMMARY"
+        run: |
+          echo "### 👉 Parlo est en ligne : ${{ steps.deploy.outputs.page_url }}" >> "$GITHUB_STEP_SUMMARY"
